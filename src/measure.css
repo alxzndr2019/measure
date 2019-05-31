@@ -1,0 +1,12 @@
+@import url("https://fonts.googleapis.com/css?family=Titillium+Web&display=swap");
+.imageDetails {
+  color: lawngreen;
+  float: left;
+  padding: 50px;
+  margin: 20px;
+  position: relative;
+  font-family: "Titillium Web", sans-serif;
+}
+.imgPreview {
+  float: right;
+}

@@ -1,7 +1,13 @@
 import React from "react";
 import logo from "./logo.svg";
 import "./measure.css";
-
+const white = "#FFFFFF";
+const black = "#161617";
+const gray = "#F8F8F9";
+const themeLight = {
+  background: gray,
+  body: black
+};
 class Measure extends React.Component {
   constructor(props) {
     super(props);
@@ -58,6 +64,14 @@ class Measure extends React.Component {
           </button>
         </form>
         <div className="imgPreview">{$imagePreview}</div>
+        <div className="imageDetails">
+          <h1>NECK:</h1>
+          <h1>ARM WIDTH:</h1>
+          <h1>ARM LENGTH:</h1>
+          <h1>WAIST:</h1>
+          <h1>LEG WIDTH:</h1>
+          <h1>LEG LENGTH:</h1>
+        </div>
       </div>
     );
   }
