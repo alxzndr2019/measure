@@ -10,3 +10,9 @@
 .imgPreview {
   float: right;
 }
+.filebar {
+  border-color: lawngreen;
+}
+#submitButton {
+  background-color: lawngreen;
+}

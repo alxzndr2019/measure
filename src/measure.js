@@ -1,80 +1,131 @@
 import React from "react";
-import logo from "./logo.svg";
-import "./measure.css";
-const white = "#FFFFFF";
-const black = "#161617";
-const gray = "#F8F8F9";
-const themeLight = {
-  background: gray,
-  body: black
-};
+import ReactDOM from "react-dom";
+import MagicDropzone from "react-magic-dropzone";
+
+import * as cocoSsd from "@tensorflow-models/coco-ssd";
+import "@tensorflow/tfjs";
+// import "./styles.css";
+
 class Measure extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { file: "", imagePreviewUrl: "" };
-  }
+  state = {
+    model: null,
+    preview: "",
+    predictions: [],
+    
+  };
 
-  _handleSubmit(e) {
-    e.preventDefault();
-    // TODO: do something with -> this.state.file
-    console.log("handle uploading-", this.state.file);
-  }
-
-  _handleImageChange(e) {
-    e.preventDefault();
-
-    let reader = new FileReader();
-    let file = e.target.files[0];
-
-    reader.onloadend = () => {
+  componentDidMount() {
+    cocoSsd.load().then(model => {
       this.setState({
-        file: file,
-        imagePreviewUrl: reader.result
+        model: model
       });
-    };
-
-    reader.readAsDataURL(file);
+    });
   }
 
-  render() {
-    let { imagePreviewUrl } = this.state;
-    let $imagePreview = null;
-    if (imagePreviewUrl) {
-      $imagePreview = <img src={imagePreviewUrl} />;
+  onDrop = (accepted, rejected, links) => {
+    this.setState({ preview: accepted[0].preview || links[0] });
+  };
+
+  cropToCanvas = (image, canvas, ctx) => {
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    if (naturalWidth > naturalHeight) {
+      ctx.drawImage(
+        image,
+        (naturalWidth - naturalHeight) / 2,
+        0,
+        naturalHeight,
+        naturalHeight,
+        0,
+        0,
+        ctx.canvas.width,
+        ctx.canvas.height
+      );
     } else {
-      $imagePreview = (
-        <div className="previewText">Please select an Image for Preview</div>
+      ctx.drawImage(
+        image,
+        0,
+        (naturalHeight - naturalWidth) / 2,
+        naturalWidth,
+        naturalWidth,
+        0,
+        0,
+        ctx.canvas.width,
+        ctx.canvas.height
       );
     }
+  };
 
+  onImageChange = e => {
+    const c = document.getElementById("canvas");
+    const ctx = c.getContext("2d");
+    this.cropToCanvas(e.target, c, ctx);
+    this.state.model.detect(c).then(predictions => {
+      // Font options.
+      const font = "16px sans-serif";
+      ctx.font = font;
+      ctx.textBaseline = "top";
+
+      predictions.forEach(prediction => {
+        const x = prediction.bbox[0];
+        const y = prediction.bbox[1];
+        const width = prediction.bbox[2];
+        const height = prediction.bbox[3];
+        // Draw the bounding box.
+        ctx.strokeStyle = "#00FFFF";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x, y, width, height);
+        // Draw the label background.
+        ctx.fillStyle = "#00FFFF";
+        const textWidth = ctx.measureText(prediction.class).width;
+        const textHeight = parseInt(font, 10); // base 10
+        ctx.fillRect(x, y, textWidth + 4, textHeight + 4);
+      });
+
+      predictions.forEach(prediction => {
+        const x = prediction.bbox[0];
+        const y = prediction.bbox[1];
+        // Draw the text last to ensure it's on top.
+        ctx.fillStyle = "#000000";
+        ctx.fillText(prediction.class, x, y);
+      });
+    });
+  };
+
+  render() {
     return (
-      <div className="previewComponent">
-        <form onSubmit={e => this._handleSubmit(e)}>
-          <input
-            className="fileInput"
-            type="file"
-            onChange={e => this._handleImageChange(e)}
-          />
-          <button
-            className="submitButton"
-            type="submit"
-            onClick={e => this._handleSubmit(e)}
+      <div className="Dropzone-page">
+        {this.state.model ? (
+          <MagicDropzone
+            className="Dropzone"
+            accept="image/jpeg, image/png, .jpg, .jpeg, .png"
+            multiple={false}
+            onDrop={this.onDrop}
           >
-            Upload Image
-          </button>
-        </form>
-        <div className="imgPreview">{$imagePreview}</div>
-        <div className="imageDetails">
-          <h1>NECK:</h1>
-          <h1>ARM WIDTH:</h1>
-          <h1>ARM LENGTH:</h1>
-          <h1>WAIST:</h1>
-          <h1>LEG WIDTH:</h1>
-          <h1>LEG LENGTH:</h1>
-        </div>
+            {this.state.preview ? (
+              <img
+                alt="upload preview"
+                onLoad={this.onImageChange}
+                className="Dropzone-img"
+                src={this.state.preview}
+              />
+            ) : (
+              "Choose or drop a file."
+            )}
+            <canvas id="canvas" />
+          </MagicDropzone>
+        ) : (
+          <div className="Dropzone">Loading model...</div>
+        )}
       </div>
     );
   }
 }
-
 export default Measure;
+// const rootElement = document.getElementById("root");
+// ReactDOM.render(<measure />, rootElement);
